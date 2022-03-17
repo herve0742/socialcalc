@@ -2181,46 +2181,18 @@ SocialCalc.ExecuteSheetCommand = function(sheet, cmd, saveundo) {
          sheet.changedrendervalues = true;
          if (saveundo) changes.AddUndo("changedrendervalues"); // to take care of undone pasted spans
          what = cmd.NextToken();
+         var inc = cmd.NextToken();
          rest = cmd.RestOfString();
          ParseRange();
-         function increment_amount(down) {
-            function valid_datatype(type) {
-		return type == "v" || type == "c";
-            }
-            var editor = SocialCalc.GetSpreadsheetControlObject().editor;
-            var range = editor.range2;
-            var returnval = undefined;
-            if (range.hasrange) {
-                var startcell, endcell;
-                if (down && (range.bottom - range.top == 1) && range.left == range.right) {
-                  startcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.top));
-                  endcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.bottom));
-                  if (valid_datatype(startcell.datatype) && valid_datatype(endcell.datatype)) {
-                      returnval =  endcell.datavalue - startcell.datavalue;
-                  }
-                } else if (!down && range.left != range.right) {
-                  startcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.top));
-                  endcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.right, range.top));
-                  if (valid_datatype(startcell.datatype) && valid_datatype(endcell.datatype)) {
-                      returnval =  endcell.datavalue - startcell.datavalue;
-		  }
-                }
-            }
-           editor.Range2Remove();
-           return returnval;
-         }
-	 var inc;
          if (cmd1 == "fillright") {
             fillright = true;
             rowstart = cr1.row;
             colstart = cr1.col + 1;
-	    inc = increment_amount(false);
             }
          else {
             fillright = false;
             rowstart = cr1.row + 1;
             colstart = cr1.col;
-	    inc = increment_amount(true);
             }
          for (row = rowstart; row <= cr2.row; row++) {
             for (col = colstart; col <= cr2.col; col++) {

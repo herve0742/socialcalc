@@ -3085,46 +3085,18 @@ SocialCalc.ExecuteSheetCommand = function(sheet, cmd, saveundo) {
          sheet.changedrendervalues = true;
          if (saveundo) changes.AddUndo("changedrendervalues"); // to take care of undone pasted spans
          what = cmd.NextToken();
+         var inc = cmd.NextToken();
          rest = cmd.RestOfString();
          ParseRange();
-         function increment_amount(down) {
-            function valid_datatype(type) {
-		return type == "v" || type == "c";
-            }
-            var editor = SocialCalc.GetSpreadsheetControlObject().editor;
-            var range = editor.range2;
-            var returnval = undefined;
-            if (range.hasrange) {
-                var startcell, endcell;
-                if (down && (range.bottom - range.top == 1) && range.left == range.right) {
-                  startcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.top));
-                  endcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.bottom));
-                  if (valid_datatype(startcell.datatype) && valid_datatype(endcell.datatype)) {
-                      returnval =  endcell.datavalue - startcell.datavalue;
-                  }
-                } else if (!down && range.left != range.right) {
-                  startcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.left, range.top));
-                  endcell = sheet.GetAssuredCell(SocialCalc.crToCoord(range.right, range.top));
-                  if (valid_datatype(startcell.datatype) && valid_datatype(endcell.datatype)) {
-                      returnval =  endcell.datavalue - startcell.datavalue;
-		  }
-                }
-            }
-           editor.Range2Remove();
-           return returnval;
-         }
-	 var inc;
          if (cmd1 == "fillright") {
             fillright = true;
             rowstart = cr1.row;
             colstart = cr1.col + 1;
-	    inc = increment_amount(false);
             }
          else {
             fillright = false;
             rowstart = cr1.row + 1;
             colstart = cr1.col;
-	    inc = increment_amount(true);
             }
          for (row = rowstart; row <= cr2.row; row++) {
             for (col = colstart; col <= cr2.col; col++) {
@@ -7401,7 +7373,6 @@ SocialCalc.SetConvertedCell = function(sheet, cr, rawvalue) {
       }
 
    }
-
 
 //
 // SocialCalcTableEditor
@@ -12281,30 +12252,33 @@ SocialCalc.CellHandlesMouseUp = function(e) {
       case "Fill":
       case "FillC":
 
-         crstart = SocialCalc.coordToCr(cellhandles.startingcoord);
-         crend = SocialCalc.coordToCr(result.coord);
-         if (cellhandles.filltype) {
-            if (cellhandles.filltype=="Down") {
-               crend.col = crstart.col;
+         var increment = 0;
+         if ( (editor.range2.left != editor.range2.right) || (editor.range2.top != editor.range2.bottom) ) {
+           var sheet = editor.context.sheetobj;
+           var startCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left, editor.range.top));
+           var endCell = startCell;
+           if (cellhandles.filltype) {
+             if (cellhandles.filltype=="Down") {
+               endCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left, editor.range.top+1));
                }
-            else {
-               crend.row = crstart.row;
+             else if (cellhandles.filltype=="Right") {
+               endCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left+1, editor.range.top));
                }
-            }
-         result.coord = SocialCalc.crToCoord(crend.col, crend.row);
+             if ( (startCell.datatype == "v" || startCell.datatype == "c")
+               && (endCell.datatype == "v" || endCell.datatype == "c")) {
+                  increment = endCell.datavalue - startCell.datavalue;
+               }
+             }
+           }
+         editor.Range2Remove();
 
-         editor.MoveECell(result.coord);
-         editor.RangeExtend();
-
-         if (editor.cellhandles.filltype=="Right") {
-            cmdtype = "right";
-            }
-         else {
-            cmdtype = "down";
-            }
-         cstr = "fill"+cmdtype+" "+SocialCalc.crToCoord(editor.range.left, editor.range.top)+
-                   ":"+SocialCalc.crToCoord(editor.range.right, editor.range.bottom)+cmdtype2;
-         editor.EditorScheduleSheetCommands(cstr, true, false);
+         commandStr = "fill" + cellhandles.filltype.toLowerCase()
+                      + " " + SocialCalc.crToCoord(editor.range.left, editor.range.top)
+                      + ":" + SocialCalc.crToCoord(editor.range.right, editor.range.bottom)
+                      + " " + increment
+                      + cmdtype2;
+         editor.EditorScheduleSheetCommands(commandStr, true, false);
+         
          break;
 
       case "Move":
@@ -13831,8 +13805,6 @@ SocialCalc.ProcessKey = function (ch, e) {
    if (!ft) return true; // we're not handling it -- let browser do default
    return ft.EditorProcessKey(ch, e);
    }
-
-
 
 //
 /*
@@ -24678,6 +24650,8 @@ SocialCalc.DoCmd = function(obj, which) {
    var spreadsheet = SocialCalc.GetSpreadsheetControlObject();
    var editor = spreadsheet.editor;
 
+   console.log("DoCmd : which :\n", which);         // DEBUG STUFF
+
    switch (which) {
       case "undo":
          spreadsheet.ExecuteCommand("undo", "");
@@ -25089,6 +25063,8 @@ SocialCalc.SpreadsheetControlExecuteCommand = function(obj, combostr, sstr) {
    var i, commands;
    var spreadsheet = SocialCalc.GetSpreadsheetControlObject();
    var eobj = spreadsheet.editor;
+
+   console.log("SCEC : combostr : " + combostr + "\n\tsstr : " + sstr);             // DEBUG STUFF
 
    var str = {};
    str.P = "%";
@@ -26915,7 +26891,6 @@ SocialCalc.CtrlSEditorDone = function(idprefix, whichpart) {
    editbox.parentNode.removeChild(editbox);
 
    }
-
 
 //
 // SocialCalcViewer

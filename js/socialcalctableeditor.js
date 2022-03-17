@@ -4876,30 +4876,33 @@ SocialCalc.CellHandlesMouseUp = function(e) {
       case "Fill":
       case "FillC":
 
-         crstart = SocialCalc.coordToCr(cellhandles.startingcoord);
-         crend = SocialCalc.coordToCr(result.coord);
-         if (cellhandles.filltype) {
-            if (cellhandles.filltype=="Down") {
-               crend.col = crstart.col;
+         var increment = 0;
+         if ( (editor.range2.left != editor.range2.right) || (editor.range2.top != editor.range2.bottom) ) {
+           var sheet = editor.context.sheetobj;
+           var startCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left, editor.range.top));
+           var endCell = startCell;
+           if (cellhandles.filltype) {
+             if (cellhandles.filltype=="Down") {
+               endCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left, editor.range.top+1));
                }
-            else {
-               crend.row = crstart.row;
+             else if (cellhandles.filltype=="Right") {
+               endCell = sheet.GetAssuredCell(SocialCalc.crToCoord(editor.range.left+1, editor.range.top));
                }
-            }
-         result.coord = SocialCalc.crToCoord(crend.col, crend.row);
+             if ( (startCell.datatype == "v" || startCell.datatype == "c")
+               && (endCell.datatype == "v" || endCell.datatype == "c")) {
+                  increment = endCell.datavalue - startCell.datavalue;
+               }
+             }
+           }
+         editor.Range2Remove();
 
-         editor.MoveECell(result.coord);
-         editor.RangeExtend();
-
-         if (editor.cellhandles.filltype=="Right") {
-            cmdtype = "right";
-            }
-         else {
-            cmdtype = "down";
-            }
-         cstr = "fill"+cmdtype+" "+SocialCalc.crToCoord(editor.range.left, editor.range.top)+
-                   ":"+SocialCalc.crToCoord(editor.range.right, editor.range.bottom)+cmdtype2;
-         editor.EditorScheduleSheetCommands(cstr, true, false);
+         commandStr = "fill" + cellhandles.filltype.toLowerCase()
+                      + " " + SocialCalc.crToCoord(editor.range.left, editor.range.top)
+                      + ":" + SocialCalc.crToCoord(editor.range.right, editor.range.bottom)
+                      + " " + increment
+                      + cmdtype2;
+         editor.EditorScheduleSheetCommands(commandStr, true, false);
+         
          break;
 
       case "Move":
