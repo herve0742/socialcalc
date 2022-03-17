@@ -26,10 +26,10 @@ var css_files = [
     css_folder + 'socialcalc.css'
 ];
 
-gulp.task('validate-js', function () {
+function validate_js() {
     for (js_file of filesExist(js_files)) {
         gulp.src(js_file)
-            .pipe(jshint())
+            .pipe(jshint({"asi": true, "maxerr": 222}))
             .pipe(jshint.reporter('jshint-stylish'));
     }
 
@@ -39,20 +39,20 @@ gulp.task('validate-js', function () {
         .pipe(concat('module-wrapper.js'))
         .pipe(jshint())
         .pipe(jshint.reporter('jshint-stylish'));
-});
+};
 
-gulp.task('js', ['validate-js'], function () {
+function make_js() {
     var files = filesExist([].concat(js_top_file, js_files, js_bottom_file));
     return gulp.src(files)
         .pipe(concat('SocialCalc.js'))
         .pipe(gulp.dest(dist_folder));
-});
+};
 
-gulp.task('css', function () {
+function make_css() {
     var files = filesExist(css_files);
     return gulp.src(files)
         .pipe(concat('socialcalc.css'))
         .pipe(gulp.dest(dist_folder));
-});
+};
 
-gulp.task('default', ['js', 'css'], function () {});
+exports.default = gulp.series(validate_js, make_js, make_css);
